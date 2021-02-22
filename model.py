@@ -46,13 +46,21 @@ class Model:
 
     tokenizer = TweetTokenizer(reduce_len=True)
 
-    # Load the model to be used
-    model_file = open("sentiment_model.pickle", 'rb')
-    model = pickle.load(model_file)
-    model_file.close()
+    model = None
+    model_loaded = False
+
+    @classmethod
+    def load_model(cls):
+        # Load the model to be used
+        model_file = open("sentiment_model.pickle", 'rb')
+        cls.model = pickle.load(model_file)
+        model_file.close()
+
+        model_loaded = True
 
     @classmethod
     def make_tweet_predictions(cls, tweets):
+
         # Create a list of clean tweets
         cleaned_tweets = [cls.clean(tweet) for tweet in tweets]
 
@@ -62,7 +70,10 @@ class Model:
         # Create a list of predictions for the tweets
         predictions = [cls.make_model_prediction(tweet) for tweet in pre_processed_tweets]
 
-        return predictions
+        # Get the list of sentiments
+        sentiments = cls.get_sentiment(predictions)
+
+        return predictions, sentiments
 
     @classmethod
     def clean(cls, text):
@@ -103,13 +114,10 @@ class Model:
 
         return prediction
 
+    @staticmethod
+    def get_sentiment(predictions):
+        # Convert predictions to readable sentiments
+        sentiments = ["Positive" if prediction == 1 else "Negative" for prediction in predictions]
 
-# model = Model()
-#
-# tweets = ["I love ice cream", "I hate ice cream"]
-#
-# predictions = model.make_tweet_predictions(tweets)
-#
-# print(predictions)
-
+        return sentiments
 

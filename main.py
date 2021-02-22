@@ -1,98 +1,75 @@
 from PyQt5.QtWidgets import QApplication
 # from PyQt5.uic.properties import QtWidgets
 from PyQt5 import QtWidgets
+from concurrent.futures import ThreadPoolExecutor
 
 import new_gui as gui
 from database import *
 import sys
-
-class User:
-    def __init__(self, username, id=None, company=None):
-        self.id = id
-        self.username = username
-        self.company = company
-        self.topics = []
+from model import Model
 
 
-    def new_topic(self, topic):
-        Database.new_topic(self.id, topic)
-
-    def get_topics(self):
-        for topic in Database.get_user_topics(self.id):
-            self.topics.append(topic)
-#
-#
-# class Topic:
-#     def __init__(self, name):
-#         self.name = name
-#         self.num_of_tweets = None
-#         self.predictions = None
-#         self.sentiments = None
-#         self.tweets = None
-#         self.likes = None
-#
-#     def get_tweets(self):
-#         self.tweets = scraper.Scraper.get_tweets(self.name)
-#
-#         self.tweets = [tweet[0] for tweet in self.tweets]
-#         self.likes = [tweet[1] for tweet in self.tweets]
-#
-#     def get_predictions(self):
-#         self.predictions = model.Model.make_tweet_predictions(self.tweets)
-#
-#         self.sentiments = ["Positive" if pred == 0 else "Negative" for pred in self.predictions]
-
-class Controller:  # Controls what happens during the running of the program
+class Controller:
     def __init__(self):
-        self.widget = QtWidgets.QStackedWidget()  # Create the window stack
+        # Create the window stack
+        self.widget = QtWidgets.QStackedWidget()
 
-        self.login = gui.Login(self)  # Instantiates the login screen
+        # Create the login and signup windows and add them to the widget stack
+        self.login = gui.Login(self)
         self.login.initUI()
-        self.widget.addWidget(self.login)  # Adds the login to the stack
+        self.widget.addWidget(self.login)
 
         self.signup = gui.SignUp(self)
         self.signup.initUI()
         self.widget.addWidget(self.signup)
 
-        self.mainWindow = gui.MainWindow(self)  # Instantiates the main window (don't need to add to the stack)
+        # Show the current window
+        self.widget.show()
 
-        self.show_login()  # Runs the "show_sign_up" method, showing the sign up form
-        self.widget.show()  # Shows the current window on the stack
+    def show_main_window(self, username):
+        # Hide the login and sign up window stack
+        self.widget.hide()
 
-        self.user = None
-
-    def show_main_window(self, username):  # Is run to show the main window
-
-        self.widget.hide()  # Hide the login and sign up window stack
-        self.mainWindow.initUI()  # Sets up the user interface elements of the main window
-
+        # Begin the main function
         self.main(username)
 
+    def show_sign_up(self):
+        # Change the window title
+        self.widget.setWindowTitle("Sign Up")
 
-    def show_sign_up(self):  # Is run to show the signing up screen
-        self.widget.setCurrentIndex(1)  # Sets the index of the stack so the sign up screen is shown
+        # Change stack index to show the sign up screen
+        self.widget.setCurrentIndex(1)
 
-    def show_login(self):  # Is run to show the login screen
-        self.widget.setCurrentIndex(0)  # Sets the index of the stack so the login screen is shown
+    def show_login(self):
+        # Change the window title
+        self.widget.setWindowTitle("Login")
+
+        # Sets the index of the stack so the login screen is shown
+        self.widget.setCurrentIndex(0)
 
     def main(self, username):
 
-        user_id, company = Database.get_user_info(username)
+        # Instantiate the user class
+        self.user = User(username)
 
-        self.user = User(username, user_id, company)
-       #  user.new_topic("Dogs")
-        user.get_topics()
-        print(user.topics)
-
+        # Sets up the user interface elements of the main window
+        self.mainWindow = gui.MainWindow(self, self.user)
+        self.mainWindow.initUI()
 
 
 
 
 def main():
     app = QApplication(sys.argv)  # Starts the application
-    app.setStyle('Fusion')
+    app.setStyle('Fusion') # Set the colour theme of the windows
     userInterface = Controller()  # Create an instance of the controller
     app.exec_()  # Creates a loop, displaying the application gui until it is exited
 
 
-main()
+if __name__ == "__main__":
+    with ThreadPoolExecutor(max_workers=2) as executor: # Create thread pool
+        executor.submit(Model.load_model) # Creates a thread to load the model
+        executor.submit(main) # Create another thread that runs the application
+
+
+
