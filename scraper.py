@@ -29,7 +29,7 @@ class Scraper:
 
             # Storing the author, text, likes of the tweets in a list
             tweets_list = [[tweet.author.screen_name, tweet.text, tweet.favorite_count] for tweet in
-                           scraped_tweets]
+                           scraped_tweets if not str(tweet.text).lower().startswith("rt @")]
 
             return tweets_list
 
