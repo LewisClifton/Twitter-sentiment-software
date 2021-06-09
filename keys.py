@@ -1,3 +1,4 @@
+# The private keys used to connect to the Twitter API
 keys = {
     'CONSUMER_KEY' : 'bohvLb22aY7nSYqVyaUS0ETED',
     'CONSUMER_SECRET' : 'AYTd6QxzMfThtwvWVwZw9HSMQ9SmO4NyKwAyy477RQnmBWBz9o',
@@ -5,6 +6,5 @@ keys = {
     'ACCESS_TOKEN_SECRET' : 'EwP519DufwrT6CmBqcCW6N8OxebWepHlKvaMEhkJkerGT'
 }
 
-#AAAAAAAAAAAAAAAAAAAAABgGEAEAAAAAJk4lCwuYk4aEZtDGIQmsA66sy64%3DPEE6ORKOBW4e5ALZGaRj02t7ps2w9B1yNB7mVHuYcMJZ4muLQF
-
+# The key used to encrypt user passwords
 encryption_key = b'8rXH7irxfxOv677L6adszFDIR4tgoDttM2zCagnk9J4='

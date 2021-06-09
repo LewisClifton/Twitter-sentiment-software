@@ -1,7 +1,6 @@
+# Make necessary imports for database manipulation
 import sqlite3
 from cryptography.fernet import Fernet
-import scraper
-from model import Model
 from datetime import datetime, timedelta
 
 
@@ -45,7 +44,6 @@ class Database:
 
     @staticmethod
     def encrypt(password):
-
         # Import the externally saved encryption key
         from keys import encryption_key
 
@@ -57,7 +55,6 @@ class Database:
 
     @staticmethod
     def decrypt(encrypted_password):
-
         # Import the externally saved encryption key
         from keys import encryption_key
         f = Fernet(encryption_key)
@@ -68,7 +65,6 @@ class Database:
 
     @classmethod
     def authenticate(cls, username, entered_password):
-
         # Connect to database
         conn = sqlite3.connect('sentiment.db')
         c = conn.cursor()
@@ -85,7 +81,7 @@ class Database:
 
         c.close()
 
-        # Decrpyt the stored password
+        # Decrypt the stored password
         decrypted_password = cls.decrypt(stored_password)
 
         # Check if the entered and stored passwords match
@@ -96,7 +92,6 @@ class Database:
 
     @classmethod
     def new_user(cls, username, password, company):
-
         # Check if they have entered a valid username
         if len(username) < 2 or len(username) > 30:
             return "Please enter a valid username"
@@ -154,7 +149,6 @@ class Database:
             # Add the new user record
             c.execute("INSERT INTO users (user_ID, username, password, company_ID) VALUES (NULL, ?, ?, ?)",
                       (username, encrypted_password, companyID))
-
         else:
             # Add the new company record
             c.execute("INSERT INTO companies (company_ID, name) VALUES (NULL, ?)", (company,))
@@ -169,12 +163,10 @@ class Database:
 
         conn.commit()
         c.close()
-
         return
 
     @classmethod
     def change_password(cls, username, new_password):
-
         # Connect to the database
         conn = sqlite3.connect('sentiment.db')
         c = conn.cursor()
@@ -214,22 +206,6 @@ class Database:
 
             # Update the record with the new company
             c.execute("UPDATE users SET company_id = ? WHERE username = ?", (newCompanyID, username))
-
-        conn.commit()
-        c.close()
-
-    @staticmethod
-    def delete():
-        # Connect to the database
-        conn = sqlite3.connect('sentiment.db')
-        c = conn.cursor()
-
-        # Remove each table
-        c.execute("DROP TABLE users")
-        c.execute("DROP TABLE user_topics")
-        c.execute("DROP TABLE topics")
-        c.execute("DROP TABLE companies")
-        c.execute("DROP TABLE logs")
 
         conn.commit()
         c.close()
@@ -332,17 +308,17 @@ class Database:
 
     @staticmethod
     def get_user_info(username):
-
         # Connect to the database
         conn = sqlite3.connect('sentiment.db')
         c = conn.cursor()
 
-        # Get the user record
+        # Get the user's record
         c.execute("SELECT user_ID, company_ID FROM users WHERE username = ?", (username,))
         data = c.fetchone()
         userID = data[0]
         companyID = data[1]
 
+        # Get the user's company name based on their associated company ID
         c.execute("SELECT name FROM companies WHERE company_ID = ?", (companyID,))
         company = c.fetchone()[0]
 
@@ -373,210 +349,20 @@ class Database:
         return topics
 
 
-
-
-class User:
-    def __init__(self, username):
-        self.username = username
-        self.id = None
-        self.company = None
-        self.topics = None
-
-        self.get_info()
-
-    def get_info(self):
-        # Get the user's information including their topics and what company they belong to.
-        self.id, company, companyID = Database.get_user_info(self.username)
-
-        # Create the user's list of topics
-        self.topics = [Topic(topic[0], topic[1]) for topic in Database.get_user_topics(self.id)]
-
-        # Create a Company instance
-        self.company = Company(companyID, company)
-
-    def new_topic(self, topicName):
-        # Add the new topic to the database
-        topicID = Database.new_topic(self.id, topicName)
-
-        # Create a new Topic instance
-        topic = Topic(topicID, topicName)
-
-        # Add this topic to the user's topic list
-        self.topics.append(topic)
-
-    def remove_topic(self, topic):
-        # Remove the relationship between the user and the topic
-        Database.remove_topic(self.id, topic.id)
-
-        # Remove the topic from the user's list of topics
-        self.topics.remove(topic)
-
-    def change_company(self, new_company_name):
-        Database.change_company(self.username, new_company_name)
-
-
-
-class TopicHandler:
-    def __init__(self, id, name):
-        # Topic info attributes
-        self.id = id
-        self.name = name
-
-        # Topic tweets attributes
-        self.tweets = []
-        self.likes = []
-        self.authors = []
-
-        # Data from current analysis
-        self.predictions = []
-        self.sentiments = []
-        self.posTweets = 0
-        self.negTweets = 0
-        self.currentSentiment = 0.5
-
-        # Log data
-        self.historicalAverageSentiment = 0.5
-        self.monthsTweets = [0 for i in range(8)]
-        self.monthsAverageSentiments = [0.5 for i in range(8)]
-        self.monthsAveragePosNegTweets = [0 for i in range(8)]
-        self.lastWeeksTweets = [0 for i in range(7)]
-        self.lastWeeksAverageSentiments = [0.5 for i in range(7)]
-        self.lastWeeksAveragePosNegTweets = [0 for i in range(7)]
-
-    def make_log(self):
-        Database.make_log(self)
-
-    def get_logs(self):
-
-        # Use the database to get the logs on this topic/company
-        logs = Database.get_logs(self)
-
-        self.get_last_8_months(logs)
-        self.get_last_week_data(logs)
-
-
-    def get_last_8_months(self, logs):
-
-        date = datetime.now().strftime("%d/%m/%y").split("/")
-
-        # Get stats from the last 8 months
-        for i in range(0, 8):
-            month = (datetime.now() - timedelta(days=30*i)).strftime("%m/%Y")
-
-            # Calculate the average sentiment this month
-            sentiments_that_month = [log[0] for log in logs if datetime.strptime(log[1], "%d/%m/%Y").strftime("%m/%Y")
-                                     == month]
-            if len(sentiments_that_month) != 0:
-                month_average_sentiment = round(sum(sentiments_that_month) / len(sentiments_that_month), 2)
-                self.monthsAverageSentiments[i] = month_average_sentiment
-            else:
-                self.monthsAverageSentiments[i] = 0.5
-
-            # Calculate the average number of positive and negative tweets this month
-            pos_this_month = [log[2] for log in logs if datetime.strptime(log[1], "%d/%m/%Y").strftime("%m/%Y")
-                                     == month]
-            neg_this_month = [log[3] for log in logs if datetime.strptime(log[1], "%d/%m/%Y").strftime("%m/%Y")
-                                     == month]
-
-            average_pos_this_month = average_neg_this_month = 0
-            if len(pos_this_month) != 0:
-                average_pos_this_month = round(sum(pos_this_month) / len(pos_this_month))
-            if len(neg_this_month) != 0:
-                average_neg_this_month = round(sum(neg_this_month) / len(neg_this_month))
-
-            self.monthsAveragePosNegTweets[i] = [average_pos_this_month, average_neg_this_month]
-
-        self.monthsTweets = [sum(month) for month in self.monthsAveragePosNegTweets]
-
-        if len(logs) != 0:
-            self.historicalAverageSentiment = round(
-                sum(self.monthsAverageSentiments) / len(self.monthsAverageSentiments),
-                2)
-
-    def get_last_week_data(self, logs):
-        # Get stats from the last 7 days
-        last_week_dates = [(datetime.now() - timedelta(days=i)).strftime("%d/%m/%Y") for i in range(7)]
-
-        for i in range(7):
-            day = last_week_dates[i]
-
-            # Find the average sentiment this day
-
-            days_sentiments = [log[0] for log in logs if log[1] == day]
-            if len(days_sentiments) != 0:
-                days_average_sentiment = round(sum(days_sentiments) / len(days_sentiments), 2)
-                self.lastWeeksAverageSentiments[i] = days_average_sentiment
-            else:
-                self.lastWeeksAverageSentiments[i] = 0.5
-
-
-            # Calculate the average number of positive and negative tweets on this day
-            pos_tweets_this_day = [log[2] for log in logs if log[1] == day]
-            neg_tweets_this_day = [log[3] for log in logs if log[1] == day]
-
-            average_pos_this_day = average_neg_this_day = 0
-            if len(pos_tweets_this_day) != 0:
-                average_pos_this_day = round(sum(pos_tweets_this_day) / len(pos_tweets_this_day))
-            if len(neg_tweets_this_day) != 0:
-                average_neg_this_day = round(sum(neg_tweets_this_day) / len(neg_tweets_this_day))
-            self.lastWeeksAveragePosNegTweets[i] = [average_pos_this_day, average_neg_this_day]
-
-        self.lastWeeksTweets = [sum(day) for day in self.lastWeeksAveragePosNegTweets]
-
-    def perform_analysis(self):
-        pass
-
-    def get_tweets(self):
-        pass
-
-    def get_predictions(self):
-        pass
-
-    def perform_analysis(self):
-        # Get the tweets and perform analysis on these tweets
-        self.get_tweets()
-        self.get_predictions()
-
-    def get_tweets(self):
-        # Get the tweets, tweet authors and likes of the tweets
-        self.tweets = scraper.Scraper.get_tweets(self.name)
-
-        self.tweets = [tweet for tweet in self.tweets]
-
-        self.authors = [tweet[0] for tweet in self.tweets]
-
-        self.likes = [tweet[2] for tweet in self.tweets]
-
-        self.tweets = [tweet[1] for tweet in self.tweets]
-
-    def get_predictions(self):
-        # Get predictions
-        self.predictions, self.sentiments = Model.make_tweet_predictions(self.tweets)
-
-        # Current average sentiment of the most recent analysis
-        if len(self.predictions) != 0:
-            self.currentSentiment = round(sum(self.predictions) / len(self.predictions), 2)
-
-        # Get the number of positive and negative tweets
-        self.posTweets = self.sentiments.count("Positive")
-        self.negTweets = self.sentiments.count("Negative")
-
-
-
-class Company(TopicHandler):
-    def __init__(self, companyID, companyName):
-        self.type = "company"
-        super(Company, self).__init__(companyID, companyName)
-        #self.perform_analysis()
-        #self.make_log()
-        self.get_logs()
-
-
-class Topic(TopicHandler):
-    def __init__(self, topicID, topic):
-        self.type = "topic"
-        super(Topic, self).__init__(topicID, topic)
-        #self.perform_analysis()
-        #self.make_log()
-        self.get_logs()
-
+# This can be added as a method to the Database class and when run will reset the contents of the db tables
+    # @staticmethod
+    # def delete():
+    #
+    #     # Connect to the database
+    #     conn = sqlite3.connect('sentiment.db')
+    #     c = conn.cursor()
+    #
+    #     # Remove each table
+    #     c.execute("DROP TABLE users")
+    #     c.execute("DROP TABLE user_topics")
+    #     c.execute("DROP TABLE topics")
+    #     c.execute("DROP TABLE companies")
+    #     c.execute("DROP TABLE logs")
+    #
+    #     conn.commit()
+    #     c.close()
