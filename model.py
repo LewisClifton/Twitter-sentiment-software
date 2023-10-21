@@ -1,18 +1,8 @@
-# General data handling
-import pandas as pd
-import numpy as np
-
 # Cleaning and preprocessing
-import nltk
 import string
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
 from nltk.tokenize import TweetTokenizer
-from sklearn.model_selection import train_test_split
-
-# Model creation
-from nltk import classify
-from nltk import NaiveBayesClassifier
 
 # Model loading
 import pickle

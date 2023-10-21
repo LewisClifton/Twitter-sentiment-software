@@ -1,6 +1,6 @@
 # Make necessary imports
 import tweepy
-from keys import keys
+from config import keys
 
 
 class Scraper:
